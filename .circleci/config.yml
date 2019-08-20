@@ -31,7 +31,7 @@ jobs:
           name: Install
           command: |
             GRADLE="./gradlew -PenablePublishing=true --no-daemon --max-workers=1 --profile --configure-on-demand"
-            export GRADLE_OPTS="-Xmx3g -Xms3g"
+            export GRADLE_OPTS="-Xmx1g -Xms1g"
 
             $GRADLE assemble
 
@@ -40,7 +40,7 @@ jobs:
           name: Build
           command: |
             GRADLE="./gradlew -PenablePublishing=true --no-daemon --max-workers=1 --profile --configure-on-demand"
-            export GRADLE_OPTS="-Xmx3g -Xms3g"
+            export GRADLE_OPTS="-Xmx1g -Xms1g"
 
             if [ "x$CIRCLE_PULL_REQUEST" != "x" ]; then
               echo -e "Build Pull Request #$CIRCLE_PULL_REQUEST => Branch [$CIRCLE_BRANCH]"
