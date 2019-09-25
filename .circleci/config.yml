@@ -36,11 +36,6 @@ jobs:
             mkdir -p ./build/reports/profile
             GRADLE="./gradlew -PenablePublishing=true --max-workers=1 --profile"
             export GRADLE_OPTS="-Xmx1g -Xms1g"
-
-#
-#  This could be greatly improved by generating a junit style report of project timing
-#
-
             #generate list
             THIS_NODES=$(./gradlew projects | grep '^+--' | sed 's/+--- Project\ '"'"':\([a-z_-]*\)'"'"'/\1/' | circleci tests split)
             for DIR in $THIS_NODES;do
