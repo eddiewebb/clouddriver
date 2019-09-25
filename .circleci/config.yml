@@ -15,7 +15,7 @@ workflows:
             - cats
       - assemble:
           requires:
-            - compile
+            - fanout
 
 jobs:
   cats:
@@ -55,7 +55,7 @@ jobs:
           destination: profile
       #- slack/notify
 
-  compile:
+  fanout:
     docker:
       - image: cimg/openjdk:8u222-b10-stable
     resource_class: xlarge
