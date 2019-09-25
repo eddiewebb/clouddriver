@@ -73,7 +73,7 @@ jobs:
             THIS_NODES=$(./gradlew projects | grep '^+--' | grep -v cats | sed 's/+--- Project\ '"'"':\([a-z_-]*\)'"'"'/\1/' | circleci tests split)
             for DIR in $THIS_NODES;do
               echo "Building $DIR"
-              $GRADLE :${DIR}:buildNeeded
+              $GRADLE :${DIR}:build
             done
       - persist_to_workspace: # Persist the specified paths (workspace/echo-output)
       # into the workspace  for use in downstream job. Must be an absolute path,
