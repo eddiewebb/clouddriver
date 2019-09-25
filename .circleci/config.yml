@@ -53,8 +53,7 @@ jobs:
       #- slack/notify
 
   fanout:
-    docker:
-      - image: cimg/openjdk:8u222-b10-stable
+    machine: true
     resource_class: xlarge
     parallelism: 6
     steps:
@@ -92,8 +91,7 @@ jobs:
 
 
   assemble:
-    docker:
-      - image: cimg/openjdk:8u222-b10-stable
+    machine: true
     resource_class: xlarge
     parallelism: 1
     steps:
