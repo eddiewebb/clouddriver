@@ -17,8 +17,8 @@ workflows:
 jobs:
   compile:
     docker:
-      - image: cimg/openjdk:9.0.4-11-stable
-    resource_class: medium
+      - image: cimg/openjdk:latest
+    resource_class: large
     parallelism: 10
     steps:
       - checkout
@@ -33,7 +33,7 @@ jobs:
       - run:
           name: Install
           command: |
-            GRADLE="./gradlew -PenablePublishing=true --no-daemon --max-workers=1 --profile --configure-on-demand"
+            GRADLE="./gradlew -PenablePublishing=true --max-workers=1 --profile"
             export GRADLE_OPTS="-Xmx1g -Xms1g"
 
             #generate list
@@ -41,6 +41,7 @@ jobs:
             THIS_NODES=$(echo $ALL_SUBPROJECTS | circleci tests split)
             for DIR in $THIS_NODES;do
               cd $DIR
+              echo "Building $DIR"
               $GRADLE assemble
               cd ..
             done
