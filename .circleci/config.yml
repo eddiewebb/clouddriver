@@ -38,9 +38,9 @@ jobs:
             mkdir -p ./build/reports/profile
             GRADLE="./gradlew -PenablePublishing=true --max-workers=1 --profile"
             export GRADLE_OPTS="-Xmx1g -Xms1g"
-            $GRADLE :cats:buildNeeded 
-            $GRADLE :clouddriver-core:buildNeeded 
-            $GRADLE :clouddriver-security:buildNeeded 
+            $GRADLE :cats:build
+            $GRADLE :clouddriver-core:build
+            $GRADLE :clouddriver-security:build
       
       - save_cache:
           when: always
