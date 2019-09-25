@@ -9,7 +9,7 @@ orbs:
 workflows:
   build_and_test:
     jobs:
-      - do-it-all
+      #- do-it-all
       - cats
       - fanout:
           requires:
@@ -76,6 +76,7 @@ jobs:
             export GRADLE_OPTS="-Xmx1g -Xms1g"
             #generate list
             THIS_NODES=$(./gradlew projects | grep '^+--' | sed 's/+--- Project\ '"'"':\([a-z_-]*\)'"'"'/\1/' | circleci tests split --split-by=timings --timings-type=classname)
+            echo "THis node will build projects: $THIS_NODES"
             for DIR in $THIS_NODES;do
               echo "Building $DIR"
               $GRADLE :${DIR}:build
@@ -95,7 +96,7 @@ jobs:
           root: '/home/circleci/.gradle'
             # Must be relative path from root
           paths:
-            - 'cache'
+            - caches
       - store_artifacts:
           when: always
           path: ./build/reports/profile
