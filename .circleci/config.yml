@@ -9,6 +9,7 @@ orbs:
 workflows:
   build_and_test:
     jobs:
+      - do-it-all
       - cats
       - fanout:
           requires:
@@ -20,7 +21,6 @@ workflows:
 jobs:
   cats:
     machine: true
-    resource_class: xlarge
     parallelism: 1
     steps:
       - checkout
@@ -39,6 +39,8 @@ jobs:
             GRADLE="./gradlew -PenablePublishing=true --max-workers=1 --profile"
             export GRADLE_OPTS="-Xmx1g -Xms1g"
             $GRADLE :cats:buildNeeded 
+            $GRADLE :clouddriver-core:buildNeeded 
+            $GRADLE :clouddriver-security:buildNeeded 
       
       - save_cache:
           when: always
@@ -49,11 +51,13 @@ jobs:
           when: always
           path: ./build/reports/profile
           destination: profile
+      - store_test_results:
+          path: ./circleci/project-timing.xml
       #- slack/notify
 
   fanout:
     machine: true
-    resource_class: xlarge
+    resource_class: large
     parallelism: 6
     steps:
       - checkout
@@ -71,7 +75,7 @@ jobs:
             GRADLE="./gradlew -PenablePublishing=true --max-workers=1 --profile"
             export GRADLE_OPTS="-Xmx1g -Xms1g"
             #generate list
-            THIS_NODES=$(./gradlew projects | grep '^+--' | grep -v cats | sed 's/+--- Project\ '"'"':\([a-z_-]*\)'"'"'/\1/' | circleci tests split)
+            THIS_NODES=$(./gradlew projects | grep '^+--' | sed 's/+--- Project\ '"'"':\([a-z_-]*\)'"'"'/\1/' | circleci tests split --split-by=timings --timings-type=classname)
             for DIR in $THIS_NODES;do
               echo "Building $DIR"
               $GRADLE :${DIR}:build
@@ -84,17 +88,25 @@ jobs:
             # Must be relative path from root
           paths:
             - '*'
+      - persist_to_workspace: # Persist the specified paths (workspace/echo-output)
+      # into the workspace  for use in downstream job. Must be an absolute path,
+      # or relative path from working_directory. This is a directory on the container which is
+      # taken to be the root directory of the workspace.
+          root: '/home/circleci/.gradle'
+            # Must be relative path from root
+          paths:
+            - 'cache'
       - store_artifacts:
           when: always
           path: ./build/reports/profile
           destination: profile
-      #- slack/notify
+
 
 
 
   assemble:
     machine: true
-    resource_class: xlarge
+    resource_class: large
     parallelism: 1
     steps:
       - checkout
@@ -112,6 +124,9 @@ jobs:
             - circle-gradle-cats
       - attach_workspace:
           at: .
+
+      - attach_workspace:
+          at: /home/circleci/.gradle
 
       - run:
           name: Build
@@ -140,4 +155,41 @@ jobs:
           destination: profile
       #- slack/notify
 
+
+  do-it-all:
+    machine: true
+    resource_class: large
+    parallelism: 1
+    steps:
+      - checkout
+      - restore_cache:
+          keys: 
+            - circle-gradle-full{{ .Branch }}
+            - circle-gradle
+      - run:
+          name: Build
+          command: |
+
+            GRADLE="./gradlew -PenablePublishing=true --no-daemon --max-workers=1 --profile --configure-on-demand"
+            export GRADLE_OPTS="-Xmx1g -Xms1g"
+
+            if [ "x$CIRCLE_PULL_REQUEST" != "x" ]; then
+              echo -e "Build Pull Request #$CIRCLE_PULL_REQUEST => Branch [$CIRCLE_BRANCH]"
+              $GRADLE build javadoc
+            else
+              echo -e 'WARN: Only building on CircleCI'
+              $GRADLE build
+            fi
+
+      - save_cache:
+          when: always
+          paths:
+          - ~/.gradle/caches
+          - ~/.gradle/wrapper
+          key: circle-gradle-full{{ .Branch }}
+      - store_artifacts:
+          when: always
+          path: ./build/reports/profile
+          destination: profile
+      #- slack/notify
 
