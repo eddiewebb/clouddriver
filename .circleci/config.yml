@@ -18,7 +18,7 @@ jobs:
   compile:
     docker:
       - image: cimg/openjdk:9.0.4-11-stable
-    resource_class: small
+    resource_class: medium
     parallelism: 10
     steps:
       - checkout
