@@ -39,16 +39,13 @@ jobs:
             mkdir -p ./build/reports/profile
             GRADLE="./gradlew -PenablePublishing=true --max-workers=1 --profile"
             export GRADLE_OPTS="-Xmx1g -Xms1g"
-            $GRADLE :cats:build
-      - persist_to_workspace: # Persist the specified paths (workspace/echo-output)
-      # into the workspace  for use in downstream job. Must be an absolute path,
-      # or relative path from working_directory. This is a directory on the container which is
-      # taken to be the root directory of the workspace.
-          root: .
-            # Must be relative path from root
+            $GRADLE :cats:buildNeeded 
+      
+      - save_cache:
+          when: always
           paths:
-            - 'cats/build' 
-            - .gradle/caches 
+          - ~/.gradle/caches
+          key: gradle-cats-{{ .Branch }}
       - store_artifacts:
           when: always
           path: ./build/reports/profile
@@ -62,16 +59,10 @@ jobs:
     parallelism: 6
     steps:
       - checkout
-      - run:
-          name: Generate Cache Checksum
-          command: find . -name '*.gradle' | sort | xargs cat | shasum | awk '{print
-            $1}' > /tmp/gradle_cache_seed
       - restore_cache:
           keys: 
-            - gradle-{{ checksum "/tmp/gradle_cache_seed" }}
-            - gradle-
-      - attach_workspace:
-          at: .
+            - gradle-cats-{{ .Branch }}
+            - gradle-cats
       - run:
           name: Install
           command: |
@@ -82,7 +73,7 @@ jobs:
             THIS_NODES=$(./gradlew projects | grep '^+--' | grep -v cats | sed 's/+--- Project\ '"'"':\([a-z_-]*\)'"'"'/\1/' | circleci tests split)
             for DIR in $THIS_NODES;do
               echo "Building $DIR"
-              $GRADLE :${DIR}:build
+              $GRADLE :${DIR}:buildNeeded
             done
       - persist_to_workspace: # Persist the specified paths (workspace/echo-output)
       # into the workspace  for use in downstream job. Must be an absolute path,
@@ -91,8 +82,7 @@ jobs:
           root: .
             # Must be relative path from root
           paths:
-            - '**/build' 
-            - .gradle/caches 
+            - '*'
       - store_artifacts:
           when: always
           path: ./build/reports/profile
@@ -116,6 +106,10 @@ jobs:
           keys: 
             - gradle-{{ checksum "/tmp/gradle_cache_seed" }}
             - gradle-
+      - restore_cache:
+          keys: 
+            - gradle-cats-{{ .Branch }}
+            - gradle-cats
       - attach_workspace:
           at: .
 
