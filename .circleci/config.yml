@@ -17,9 +17,9 @@ workflows:
 jobs:
   compile:
     docker:
-      - image: cimg/openjdk:latest
-    resource_class: large
-    parallelism: 10
+      - image: cimg/openjdk:8u222-b10-stable
+    resource_class: xlarge
+    parallelism: 4
     steps:
       - checkout
       - run:
@@ -33,12 +33,11 @@ jobs:
       - run:
           name: Install
           command: |
-            GRADLE="./gradlew -PenablePublishing=true --max-workers=1 --profile"
+            GRADLE="../gradlew -PenablePublishing=true --max-workers=1 --profile"
             export GRADLE_OPTS="-Xmx1g -Xms1g"
 
             #generate list
-            ALL_SUBPROJECTS=$(./gradlew projects | grep '^+--' | sed 's/+--- Project\ '"'"':\([a-z_-]*\)'"'"'/\1/')
-            THIS_NODES=$(echo $ALL_SUBPROJECTS | circleci tests split)
+            THIS_NODES=$(./gradlew projects | grep '^+--' | sed 's/+--- Project\ '"'"':\([a-z_-]*\)'"'"'/\1/' | circleci tests split)
             for DIR in $THIS_NODES;do
               cd $DIR
               echo "Building $DIR"
@@ -63,8 +62,8 @@ jobs:
 
   assemble:
     docker:
-      - image: cimg/openjdk:9.0.4-11-stable
-    resource_class: large
+      - image: cimg/openjdk:8u222-b10-stable
+    resource_class: xlarge
     parallelism: 1
     steps:
       - checkout
