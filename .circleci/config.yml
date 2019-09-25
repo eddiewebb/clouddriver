@@ -9,17 +9,20 @@ orbs:
 workflows:
   build_and_test:
     jobs:
-      - compile
+      - cats
+      - fanout:
+          requires:
+            - cats
       - assemble:
           requires:
             - compile
 
 jobs:
-  compile:
+  cats:
     docker:
       - image: cimg/openjdk:8u222-b10-stable
     resource_class: xlarge
-    parallelism: 6
+    parallelism: 1
     steps:
       - checkout
       - run:
@@ -36,8 +39,47 @@ jobs:
             mkdir -p ./build/reports/profile
             GRADLE="./gradlew -PenablePublishing=true --max-workers=1 --profile"
             export GRADLE_OPTS="-Xmx1g -Xms1g"
+            $GRADLE :cats:build
+      - persist_to_workspace: # Persist the specified paths (workspace/echo-output)
+      # into the workspace  for use in downstream job. Must be an absolute path,
+      # or relative path from working_directory. This is a directory on the container which is
+      # taken to be the root directory of the workspace.
+          root: .
+            # Must be relative path from root
+          paths:
+            - 'cats/build' 
+            - .gradle/caches 
+      - store_artifacts:
+          when: always
+          path: ./build/reports/profile
+          destination: profile
+      #- slack/notify
+
+  compile:
+    docker:
+      - image: cimg/openjdk:8u222-b10-stable
+    resource_class: xlarge
+    parallelism: 6
+    steps:
+      - checkout
+      - run:
+          name: Generate Cache Checksum
+          command: find . -name '*.gradle' | sort | xargs cat | shasum | awk '{print
+            $1}' > /tmp/gradle_cache_seed
+      - restore_cache:
+          keys: 
+            - gradle-{{ checksum "/tmp/gradle_cache_seed" }}
+            - gradle-
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install
+          command: |
+            mkdir -p ./build/reports/profile
+            GRADLE="./gradlew -PenablePublishing=true --max-workers=1 --profile"
+            export GRADLE_OPTS="-Xmx1g -Xms1g"
             #generate list
-            THIS_NODES=$(./gradlew projects | grep '^+--' | sed 's/+--- Project\ '"'"':\([a-z_-]*\)'"'"'/\1/' | circleci tests split)
+            THIS_NODES=$(./gradlew projects | grep '^+--' | grep -v cats | sed 's/+--- Project\ '"'"':\([a-z_-]*\)'"'"'/\1/' | circleci tests split)
             for DIR in $THIS_NODES;do
               echo "Building $DIR"
               $GRADLE :${DIR}:build
@@ -66,8 +108,6 @@ jobs:
     parallelism: 1
     steps:
       - checkout
-      - attach_workspace:
-          at: .
       - run:
           name: Generate Cache Checksum
           command: find . -name '*.gradle' | sort | xargs cat | shasum | awk '{print
@@ -76,6 +116,8 @@ jobs:
           keys: 
             - gradle-{{ checksum "/tmp/gradle_cache_seed" }}
             - gradle-
+      - attach_workspace:
+          at: .
 
       - run:
           name: Build
