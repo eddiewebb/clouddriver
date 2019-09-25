@@ -19,8 +19,7 @@ workflows:
 
 jobs:
   cats:
-    docker:
-      - image: cimg/openjdk:8u222-b10-stable
+    machine: true
     resource_class: xlarge
     parallelism: 1
     steps:
@@ -31,8 +30,8 @@ jobs:
             $1}' > /tmp/gradle_cache_seed
       - restore_cache:
           keys: 
-            - gradle-{{ checksum "/tmp/gradle_cache_seed" }}
-            - gradle-
+            - circle-gradle-{{ checksum "/tmp/gradle_cache_seed" }}
+            - circle-gradle-
       - run:
           name: Install
           command: |
@@ -45,7 +44,7 @@ jobs:
           when: always
           paths:
           - ~/.gradle/caches
-          key: gradle-cats-{{ .Branch }}
+          key: circle-gradle-cats-{{ .Branch }}
       - store_artifacts:
           when: always
           path: ./build/reports/profile
@@ -63,8 +62,8 @@ jobs:
           pwd
       - restore_cache:
           keys: 
-            - gradle-cats-{{ .Branch }}
-            - gradle-cats
+            - circle-gradle-cats-{{ .Branch }}
+            - circle-gradle-cats
       - run:
           name: Install
           command: |
@@ -105,12 +104,12 @@ jobs:
             $1}' > /tmp/gradle_cache_seed
       - restore_cache:
           keys: 
-            - gradle-{{ checksum "/tmp/gradle_cache_seed" }}
-            - gradle-
+            - circle-gradle-{{ checksum "/tmp/gradle_cache_seed" }}
+            - circle-gradle-
       - restore_cache:
           keys: 
-            - gradle-cats-{{ .Branch }}
-            - gradle-cats
+            - circle-gradle-cats-{{ .Branch }}
+            - circle-gradle-cats
       - attach_workspace:
           at: .
 
@@ -134,7 +133,7 @@ jobs:
           paths:
           - ~/.gradle/caches
           - ~/.gradle/wrapper
-          key: gradle-{{ checksum "/tmp/gradle_cache_seed" }}
+          key: circle-gradle-{{ checksum "/tmp/gradle_cache_seed" }}
       - store_artifacts:
           when: always
           path: ./build/reports/profile
