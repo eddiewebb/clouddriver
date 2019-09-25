@@ -9,11 +9,17 @@ orbs:
 workflows:
   build_and_test:
     jobs:
-      - build
+      - compile
+      - assemble:
+          requires:
+            - compile
 
 jobs:
-  build:
-    machine: true
+  compile:
+    docker:
+      - image: cimg/openjdk:9.0.4-11-stable
+    resource_class: small
+    parallelism: 10
     steps:
       - checkout
       - run:
@@ -33,8 +39,50 @@ jobs:
             GRADLE="./gradlew -PenablePublishing=true --no-daemon --max-workers=1 --profile --configure-on-demand"
             export GRADLE_OPTS="-Xmx1g -Xms1g"
 
-            $GRADLE assemble
+            #generate list
+            ALL_SUBPROJECTS=$(./gradlew projects | grep '^+--' | sed 's/+--- Project\ '"'"':\([a-z_-]*\)'"'"'/\1/')
+            THIS_NODES=$(echo $ALL_SUBPROJECTS | circleci tests split)
+            for DIR in $THIS_NODES;do
+              cd $DIR
+              $GRADLE assemble
+              cd ..
+            done
+      - persist_to_workspace: # Persist the specified paths (workspace/echo-output)
+      # into the workspace  for use in downstream job. Must be an absolute path,
+      # or relative path from working_directory. This is a directory on the container which is
+      # taken to be the root directory of the workspace.
+          root: .
+            # Must be relative path from root
+          paths:
+            - '**/build'  
+      - store_artifacts:
+          when: always
+          path: ./build/reports/profile
+          destination: profile
+      #- slack/notify
 
+
+
+  assemble:
+    docker:
+      - image: cimg/openjdk:9.0.4-11-stable
+    resource_class: large
+    parallelism: 1
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Open permissions on cache dir
+          command: sudo chmod -R a+rwx /root
+      - run:
+          name: Generate Cache Checksum
+          command: find . -name '*.gradle' | sort | xargs cat | shasum | awk '{print
+            $1}' > /tmp/gradle_cache_seed
+      - restore_cache:
+          keys: 
+            - gradle-{{ checksum "/tmp/gradle_cache_seed" }}
+            - gradle-
 
       - run:
           name: Build
@@ -49,6 +97,7 @@ jobs:
               echo -e 'WARN: Only building on CircleCI'
               $GRADLE build
             fi
+
       - save_cache:
           when: always
           paths:
@@ -58,7 +107,7 @@ jobs:
       - store_artifacts:
           when: always
           path: ./build/reports/profile
-          destiantion: profile
+          destination: profile
       #- slack/notify
 
 
