@@ -23,9 +23,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Open permissions on cache dir
-          command: sudo chmod -R a+rwx /root
-      - run:
           name: Generate Cache Checksum
           command: find . -name '*.gradle' | sort | xargs cat | shasum | awk '{print
             $1}' > /tmp/gradle_cache_seed
@@ -72,9 +69,6 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - run:
-          name: Open permissions on cache dir
-          command: sudo chmod -R a+rwx /root
       - run:
           name: Generate Cache Checksum
           command: find . -name '*.gradle' | sort | xargs cat | shasum | awk '{print
